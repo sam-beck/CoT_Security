@@ -89,12 +89,8 @@ def CoTTreeTokens(model, prompt, length, return_probabilities, **kwargs):
             # Recursive method, constructs the CoT chain data coming off each node
             # Concatenate the new tokens with the input tokens
             next_tokens = torch.cat((tokens, sequence["output"].unsqueeze(0)), dim=1)
-            generateNextTokenSequence(model, next_tokens, length - 1, arr[len(arr)-1], return_probabilities, **kwargs)
-    
-    # Ensure prompt is properly formatted as a tensor if it isn't already
-    if not isinstance(prompt, torch.Tensor):
-        prompt = torch.tensor(prompt).unsqueeze(0)
-    array = []   
-    generateNextTokenSequence(model, prompt, length, array, return_probabilities, **kwargs)
+            generateNextTokenSequence(model, next_tokens, length-1, arr[len(arr)-1], return_probabilities, **kwargs)    
+    array = [{'output': torch.flatten(prompt)}]
+    generateNextTokenSequence(model, prompt, length-1, array, return_probabilities, **kwargs)
     # Return resulting array, only called once after all recursive functions have returned
     return array

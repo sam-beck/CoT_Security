@@ -1,9 +1,11 @@
 import multisampling
+import visualization
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load model and tokenizer
 model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"  # Replace with your model
+model_name = "gpt2"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
@@ -19,8 +21,8 @@ input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device)  # Move to 
 nodes = 2
 
 # Generate output
-output_ids = multisampling.CoTTreeTokens(
-    model, input_ids, 2, True, 
+output = multisampling.CoTTreeTokens(
+    model, input_ids, 3, True, 
     temperature=0.9, 
     top_p=0.7, 
     num_return_sequences=nodes, 
@@ -30,10 +32,19 @@ output_ids = multisampling.CoTTreeTokens(
     )
 
 # Print result and confidence of each chain
-print(output_ids)
+print(output)
 
 # Decode and print the first output chain (new thought on each line)
 print(prompt)
-print(tokenizer.decode(output_ids[1][0]["output"], skip_special_tokens=True))
-print(tokenizer.decode(output_ids[1][1][0]["output"], skip_special_tokens=True))
+print(tokenizer.decode(output[1][0]["output"], skip_special_tokens=True))
+print(tokenizer.decode(output[1][1][0]["output"], skip_special_tokens=True))
 
+app = visualization.QApplication(visualization.sys.argv)
+view = visualization.FlowchartView()
+view.setWindowTitle("CoT Visualization")
+view.show()
+
+# Display nodes
+visualization.createNodes(view,tokenizer,view.windowWidth/2,0,output,width=350,shiftAmt=600,dropAmt=350,shiftReduction=1.6)
+
+visualization.sys.exit(app.exec_())
