@@ -3,7 +3,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load model and tokenizer
-model_name = "gpt2"  # Replace with your model
+model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"  # Replace with your model
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
