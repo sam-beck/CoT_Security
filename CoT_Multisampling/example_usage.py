@@ -4,7 +4,8 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load model and tokenizer
-model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+#model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+model_name = "gpt2"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -17,17 +18,14 @@ model.to(device) # Move to chosen device
 prompt = 'If you rearrange the letters in "new door," what two words do you get?'
 input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device) 
 
-# Number of nodes in the tree, depth of tree
-length = 3 
-# Number of nodes in each chain
-nodes = 2
+# List of nodal structure for each node in the tree
+nodes = [2,1,1] # First node generation has 2 branches, second has 1 branch, third has 1 branch
 
 # Generate output using multisampling and specific inference parameters
 output = multisampling.CoTTreeTokens(
-    model, input_ids, 2, True, 
+    model, input_ids, nodes, True, 
     temperature=0.9, 
     top_p=0.7, 
-    num_return_sequences=nodes,
     max_new_tokens=40,
     num_beams=1, 
     pad_token_id=None, 

@@ -30,29 +30,28 @@ import visualization
 model = AutoModelForCausalLM.from_pretrained("insert_model_name_here") # Load model
 tokenizer = AutoTokenizer.from_pretrained("insert_model_name_here") # Load tokenizer
 ```
-### 3. Define input prompt and tree parameters
+
+### 3. Define input prompt, input_ids and tree structure
 ```python
 prompt = "input_prompt_here" # Input prompt
-length = 3 # Number of nodes in the tree, depth of tree
-nodes = 2 # Number of nodes created from each parent node, the "n" in n-ary tree
+input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device) # Encode input prompt
+node_structure = [2,1,1] # First node generation has 2 branches, second has 1 branch, third has 1 branch
 ```
 
 ### 4. Generate tree of reasoning paths
 ```python
 output = CoTTreeTokens(
-    model, 
-    tokenizer, 
-    prompt, 
-    length=length, 
-    num_return_sequences=nodes,
+    model=model, # Model
+    prompt=input_ids, # Encoded input prompt
+    node_structure=node_structure, # nodal structure of tree, where each element is the number of branches from each node
+    return_probabilities=True, # Whether to return token probabilities vs raw logits
     temperature=0.9, # Determines randomness of sampling
     top_p=0.8, # Means top 80% of the distribution is considered
-    num_return_sequences=nodes, # Number of nodes created from each parent node, the "n" in n-ary tree
     max_new_tokens=50, # Maximum number of tokens to generate, in future this will be dependent on an end-of-thought token (</think>)
     num_beams=1, # The number of beams for beam search; higher values improve quality but increase computation
     pad_token_id=None, # Padding token id
     eos_token_id=None # End of sequence token id
-    )
+)
 ```
 
 ### 5. Decode and print thought chain (optional)

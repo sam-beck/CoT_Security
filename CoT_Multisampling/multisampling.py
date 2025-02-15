@@ -49,14 +49,14 @@ def mutlisampleGenerate(model, tokens, return_probabilites=True, **kwargs):
     
 
 # Creates a tree consisting of equal chain of thought lengths and nodes, with the output represented as tokens
-def CoTTreeTokens(model, prompt, length, return_probabilities, **kwargs):
+def CoTTreeTokens(model, prompt, node_structure, return_probabilities=True, **kwargs):
     """
     Generate a tree of chain-of-thought sequences using recursive token generation.
 
     Args:
         model: The language model to use for generation (must support generate() method)
         prompt (torch.Tensor or list): Input prompt tokens to start generation from
-        length (int): Number of steps/levels in each chain of thought
+        node_structure (list): List of integers representing the structure of the tree where each element is the number of branches from each node
         return_probabilities (bool): Whether to return token probabilities vs raw logits
         **kwargs: Additional keyword arguments passed to mutlisampleGenerate()
             Important arguments include:
@@ -71,13 +71,17 @@ def CoTTreeTokens(model, prompt, length, return_probabilities, **kwargs):
             - confidence (list[float]): Confidence scores for generated tokens
 
     The function builds a tree where each node branches into num_return_sequences
-    children, and each branch extends for 'length' steps, creating chains of
+    children, and each branch extends for the length of node_structure, creating chains of
     sequential thoughts.
     """
-    def generateNextTokenSequence(model, tokens, length, arr, return_probabilities, **kwargs):
+    # Recursive function to generate each nodal sequence for tree
+    def generateNextTokenSequence(tokens, length, arr):
         # End case of recursive function
         if length < 1:
             return
+
+        # Set the number of return sequences for the current node
+        kwargs["num_return_sequences"] = node_structure[len(node_structure) - length]
 
         # Generate each node that contains a sequence, defined in samplingParams by the num_return_sequences
         output = mutlisampleGenerate(model, tokens, return_probabilities, **kwargs)
@@ -89,8 +93,10 @@ def CoTTreeTokens(model, prompt, length, return_probabilities, **kwargs):
             # Recursive method, constructs the CoT chain data coming off each node
             # Concatenate the new tokens with the input tokens
             next_tokens = torch.cat((tokens, sequence["output"].unsqueeze(0)), dim=1)
-            generateNextTokenSequence(model, next_tokens, length-1, arr[len(arr)-1], return_probabilities, **kwargs)    
+            generateNextTokenSequence(next_tokens, length-1, arr[len(arr)-1])    
+    # Initialize array with input prompt
     array = [{'output': torch.flatten(prompt)}]
-    generateNextTokenSequence(model, prompt, length-1, array, return_probabilities, **kwargs)
+    # Generate the tree
+    generateNextTokenSequence(prompt, len(node_structure), array)
     # Return resulting array, only called once after all recursive functions have returned
     return array
