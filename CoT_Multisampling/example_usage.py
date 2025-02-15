@@ -18,7 +18,7 @@ prompt = 'If you rearrange the letters in "new door," what two words do you get?
 input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device) 
 
 # List of nodal structure for each node in the tree
-nodes = [3,1,1] # First node generation has 2 branches, second has 1 branch, third has 1 branch
+nodes = [3,2,1] # First node generation has 3 branches, second has 2 branches, third has 1 branch
 
 # Generate output using multisampling and specific inference parameters
 output = multisampling.CoTTreeTokens(
