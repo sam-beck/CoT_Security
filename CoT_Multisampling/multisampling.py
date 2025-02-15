@@ -94,6 +94,7 @@ def CoTTreeTokens(model, prompt, node_structure, return_probabilities=True, **kw
             # Concatenate the new tokens with the input tokens
             next_tokens = torch.cat((tokens, sequence["output"].unsqueeze(0)), dim=1)
             generateNextTokenSequence(next_tokens, length-1, arr[len(arr)-1])    
+
     # Initialize array with input prompt
     array = [{'output': torch.flatten(prompt)}]
     # Generate the tree

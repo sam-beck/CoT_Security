@@ -19,10 +19,10 @@ See [example_usage.py](example_usage.py) for a basic example of how to use the m
 
 ### 1. Import basic modules
 ```python
-import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
-import multisampling
-import visualization
+import torch # Pytorch
+from transformers import AutoModelForCausalLM, AutoTokenizer # Transformers library
+import multisampling # Multisampling.py
+import visualization # Visualization.py
 ```
 
 ### 2. Load model and tokenizer
