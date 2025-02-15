@@ -4,8 +4,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load model and tokenizer
-#model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
-model_name = "gpt2"
+model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -18,6 +17,8 @@ model.to(device) # Move to chosen device
 prompt = 'If you rearrange the letters in "new door," what two words do you get?'
 input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device) 
 
+# Number of nodes in the tree, depth of tree
+length = 3 
 # Number of nodes in each chain
 nodes = 2
 
@@ -33,9 +34,7 @@ output = multisampling.CoTTreeTokens(
     eos_token_id=None
 )
 
-
-
-# Print result and confidence of each chain
+# Print result data structureand confidence of each chain
 print(output)
 print("--------------------------------")
 
@@ -44,6 +43,7 @@ print(prompt)
 print(tokenizer.decode(output[1][0]["output"], skip_special_tokens=True))
 print(tokenizer.decode(output[1][1][0]["output"], skip_special_tokens=True))
 
+# Visualize tree using pyqt5
 app = visualization.QApplication(visualization.sys.argv)
 view = visualization.FlowchartView()
 view.setWindowTitle("CoT Visualization")
@@ -52,4 +52,5 @@ view.show()
 # Display nodes
 visualization.createNodes(view,tokenizer,view.windowWidth/2,0,output,width=350,shiftAmt=600,dropAmt=350,shiftReduction=1.6)
 
+# Exit application when window closed
 visualization.sys.exit(app.exec_())
