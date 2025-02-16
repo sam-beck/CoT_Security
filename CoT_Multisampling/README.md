@@ -57,8 +57,13 @@ output = CoTTreeTokens(
 ### 5. Decode and print thought chain (optional)
 ```python
 print(prompt) # Input prompt
-print(tokenizer.decode(output[1][0]["output"], skip_special_tokens=True)) # Left output node, depth=1
-print(tokenizer.decode(output[1][1][0]["output"], skip_special_tokens=True)) # Left output node of parent node, depth=2
+decodedTree = decodeTree(output, tokenizer)
+print("\n Root node: \n")
+print(decodedTree[0]["output"]) # Root node
+print("\n Depth = 1: \n")
+print(decodedTree[1][0]["output"]) # Left output node of root node, depth=1
+print("\n Depth = 2: \n")
+print(decodedTree[1][1][0]["output"]) # Left output node of parent node, depth=2
 ```
 
 ### 6. Visualize tree (optional)

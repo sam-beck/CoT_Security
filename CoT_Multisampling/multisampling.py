@@ -28,9 +28,24 @@ def mutlisampleGenerate(model, tokens, return_probabilites=True, **kwargs):
     # Generate responses using the model with the provided sampling parameters.
     inputs = {'input_ids': tokens}
     output = model.generate(**inputs,**kwargs,do_sample=True,output_scores=True,return_dict_in_generate=True)
-        
+    
     # Get transition / per-token scores
-    transition_scores = model.compute_transition_scores(output.sequences, output.scores, normalize_logits=True)
+    if hasattr(output, 'beam_indices'):
+        # Handle beam search output
+        transition_scores = model.compute_transition_scores(
+            output.sequences,
+            output.scores,
+            output.beam_indices,
+            normalize_logits=True
+        )
+    else:
+        # Handle non-beam search output
+        transition_scores = model.compute_transition_scores(
+            output.sequences,
+            output.scores,
+            normalize_logits=True
+        )
+
     input_size = tokens.shape[1]
     # Get tokens without input prompt
     gen_tokens = output.sequences[:,input_size:]
@@ -41,6 +56,7 @@ def mutlisampleGenerate(model, tokens, return_probabilites=True, **kwargs):
         data = zip(gen_tokens[i], transition_scores[i])
         logits.append([])
         # Add to logits, convert to probabilities if specified
+        # TODO: fix this to be more efficient
         for token, score in data:
             logits[i].append(np.exp(score.cpu().numpy()).item() if return_probabilites else score.cpu().numpy().item())
         return_data.append({"output": gen_tokens[i], "confidence": logits[i] })
@@ -82,7 +98,11 @@ def CoTTreeTokens(model, prompt, node_structure, return_probabilities=True, **kw
 
         # Set the number of return sequences for the current node
         kwargs["num_return_sequences"] = node_structure[len(node_structure) - length]
-
+        # Error checking for num_beams, must be equal to or less than num_return_sequences
+        if hasattr(kwargs, "num_beams"):
+            if kwargs["num_beams"] < kwargs["num_return_sequences"]:
+                kwargs["num_beams"] = kwargs["num_return_sequences"]
+        
         # Generate each node that contains a sequence, defined in samplingParams by the num_return_sequences
         output = mutlisampleGenerate(model, tokens, return_probabilities, **kwargs)
         
@@ -101,3 +121,31 @@ def CoTTreeTokens(model, prompt, node_structure, return_probabilities=True, **kw
     generateNextTokenSequence(prompt, len(node_structure), array)
     # Return resulting array, only called once after all recursive functions have returned
     return array
+
+def decodeTree(tree, tokenizer):
+    """
+    Decodes the tree tokens into string sequences. Retains token-level confidence scores.
+
+    Args:
+        tree (list): The tree to decode.
+        tokenizer (transformers.Tokenizer): The tokenizer to use for decoding.
+    """
+    # Recursive function to generate each nodal sequence for tree
+    def decodeNextTokenSequence(branch, arr):
+        arr.append({"output":tokenizer.decode(branch[0]["output"], skip_special_tokens=True), "confidence": branch[0]["confidence"]})
+        # Loop through each node
+        for i in range(1,len(branch)):
+            arr.append([])
+            # Recursive method, decodes the CoT chain data coming off each node
+            decodeNextTokenSequence(branch[i], arr[len(arr)-1])    
+
+    # Initialize array with root node
+    array = [{"output":tokenizer.decode(tree[0]["output"], skip_special_tokens=True)}]
+    # Generate decoded tree by looping through each branch
+    for i in range(1,len(tree)):
+        array.append([])
+        # Generate decoded branch
+        decodeNextTokenSequence(tree[i], array[len(array)-1])
+    # Return resulting array, only called once after all recursive functions have returned
+    return array
+

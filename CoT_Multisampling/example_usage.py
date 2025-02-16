@@ -4,13 +4,15 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load model and tokenizer
-model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+#model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+model_name = "gpt2"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
 
 # Choose device (GPU if available, otherwise CPU)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 model.to(device) # Move to chosen device
 
 # Encode input prompt
@@ -18,15 +20,15 @@ prompt = 'If you rearrange the letters in "new door," what two words do you get?
 input_ids = tokenizer.encode(prompt, return_tensors="pt").to(device) 
 
 # List of nodal structure for each node in the tree
-nodes = [3,2,1] # First node generation has 3 branches, second has 2 branches, third has 1 branch
+nodes = [2,2,1] # First node generation has 3 branches, second has 2 branches, third has 1 branch
 
 # Generate output using multisampling and specific inference parameters
 output = multisampling.CoTTreeTokens(
     model, input_ids, nodes, True, 
-    temperature=0.9, 
-    top_p=0.7, 
-    max_new_tokens=40,
-    num_beams=1, 
+    temperature=0.8, 
+    top_p=0.4, 
+    max_new_tokens=20,
+    num_beams=1,
     pad_token_id=None, 
     eos_token_id=None
 )
@@ -35,10 +37,16 @@ output = multisampling.CoTTreeTokens(
 print(output)
 print("--------------------------------")
 
-# Decode and print the left-most output chain up to depth=2 (new thought on each line)
-print(prompt)
-print(tokenizer.decode(output[1][0]["output"], skip_special_tokens=True))
-print(tokenizer.decode(output[1][1][0]["output"], skip_special_tokens=True))
+# Decode and print the left-most output chain up to depth=3 (new thought on each line)
+decodedTree = multisampling.decodeTree(output, tokenizer)
+print("\n Root node: \n")
+print(decodedTree[0]["output"])
+print("\n Depth = 1: \n")
+print(decodedTree[1][0]["output"])
+print("\n Depth = 2: \n")
+print(decodedTree[1][1][0]["output"])
+print("\n Depth = 3: \n")
+print(decodedTree[1][1][1][0]["output"])
 
 # Visualize tree using pyqt5
 app = visualization.QApplication(visualization.sys.argv)

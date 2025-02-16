@@ -1,9 +1,7 @@
 from PyQt5.QtWidgets import QApplication, QDesktopWidget, QGraphicsScene, QGraphicsItem, QGraphicsView, QGraphicsRectItem, QGraphicsTextItem, QGraphicsLineItem
 from PyQt5.QtGui import QPen, QPainter, QFont
 from PyQt5.QtCore import Qt
-import sys
-import math
-import torch
+import sys, math, torch
 
 class ResizableTextNode(QGraphicsRectItem):
     def __init__(self, x, y, text, width=120, height=50, padding=8, fontSize=10):
@@ -113,13 +111,11 @@ class FlowchartView(QGraphicsView):
         self.setScene(self.scene)
         self.setRenderHint(QPainter.Antialiasing)  # Enable smooth rendering
         
-        # Ensure scroll bars are visible
-        self.setVerticalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
-        self.setHorizontalScrollBarPolicy( Qt.ScrollBarAlwaysOn )
+        # Remove scrollbars
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
 
         # Set up viewport (maximised)
-        viewport = QDesktopWidget().screenGeometry()
-        self.setSceneRect(0, 0, viewport.width(), viewport.height())
         self.showMaximized()
         self.windowWidth = self.size().width()
         self.windowHeight = self.size().height()
@@ -128,8 +124,44 @@ class FlowchartView(QGraphicsView):
         self.maxScroll = 0.25
         self.scrollDampening = 40
 
+        # Panning parameters
+        self._panning = False
+        self.lastMousePosition = None
+        self._pan_start = None
+
         self.nodes = []  # Store nodes for correct ordering
         self.lines = []  # Store lines
+
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MiddleButton:
+            self._panning = True
+            self.lastMousePosition = event.pos()
+            self._pan_start = event.pos()
+            self.setCursor(Qt.ClosedHandCursor)
+            event.accept()
+        else:
+            super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MiddleButton:
+            self._panning = False
+            self.setCursor(Qt.ArrowCursor)
+            event.accept()
+        else:
+            super().mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        if self._panning:
+            self.setTransformationAnchor(QGraphicsView.NoAnchor)
+            self.setResizeAnchor(QGraphicsView.NoAnchor)
+            oldPosition = self.mapToScene(self.lastMousePosition)
+            newPosition = self.mapToScene(event.pos())
+            translation = newPosition - oldPosition
+            self.setSceneRect(self.sceneRect().translated(-translation.x(), -translation.y()))
+            self.lastMousePosition = event.pos()
+            event.accept()
+        else:
+            super().mouseMoveEvent(event)
 
     # Zooming with scroll wheel
     def wheelEvent(self, event):
@@ -152,14 +184,15 @@ def createNodes(view, tokenizer, x, y, arr, width=100, shiftAmt=500, dropAmt=250
     Recursively creates and positions nodes in a tree visualization.
     """
     node_data = arr[0]
+    pos = view.mapToScene(int(x),int(y))
     if "confidence" in node_data:
         # Rounds to 2 DP
         info = ("\n\n Confidence: " + str(round(sum(node_data["confidence"])/len(node_data["confidence"]), 2)))
         # Add current node to tree
-        currentNode = view.addNode(x, y, tokenizer.decode(node_data["output"], skip_special_tokens=True) + info, width)
+        currentNode = view.addNode(pos.x(), pos.y(), tokenizer.decode(node_data["output"], skip_special_tokens=True) + info, width)
     else:
         # Add current node to tree
-        currentNode = view.addNode(x, y, tokenizer.decode(node_data["output"], skip_special_tokens=True), width)
+        currentNode = view.addNode(pos.x(), pos.y(), tokenizer.decode(node_data["output"], skip_special_tokens=True), width)
 
     # Add connections to tree
     if previousNode is not None:
