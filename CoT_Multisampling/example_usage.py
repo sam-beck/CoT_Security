@@ -4,8 +4,7 @@ import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load model and tokenizer
-#model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
-model_name = "gpt2"
+model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 model = AutoModelForCausalLM.from_pretrained(model_name)
@@ -28,7 +27,7 @@ output = multisampling.CoTTreeTokens(
     temperature=0.8, 
     top_p=0.4, 
     max_new_tokens=20,
-    num_beams=1,
+    num_beams=2,
     pad_token_id=None, 
     eos_token_id=None
 )
